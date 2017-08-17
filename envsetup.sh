@@ -467,7 +467,7 @@ function _lunch_meat()
     set_stuff_for_environment
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || printconfig
 
-    if [[ -z "${ANDROID_QUIET_BUILD}" ]]; then
+    if [[ -z "${ANDROID_QUIET_BUILD}" && -z "${ICE_BUILD}" ]]; then
         local spam_for_lunch=$(gettop)/build/make/tools/envsetup/spam_for_lunch
         if [[ -x $spam_for_lunch ]]; then
             $spam_for_lunch
@@ -577,6 +577,13 @@ function lunch()
             variant=eng
         fi
     fi
+
+    if (echo -n $product | grep -q -e "^ice_") ; then
+        ICE_BUILD=$(echo -n $product | sed -e 's/^ice_//g')
+    else
+        ICE_BUILD=
+    fi
+    export ICE_BUILD
 
     # Validate the selection and set all the environment stuff
     _lunch_meat $product $release $variant
