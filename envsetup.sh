@@ -141,6 +141,30 @@ function get_host_prebuilt_prefix
   fi
 }
 
+# check to see if the supplied product is one we can build
+function check_product()
+{
+    local T=$(gettop)
+    if [ ! "$T" ]; then
+        echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
+        return
+    fi
+    if (echo -n $1 | grep -q -e "^ice_") ; then
+        ICE_BUILD=$(echo -n $1 | sed -e 's/^ice_//g')
+    else
+        ICE_BUILD=
+    fi
+    export ICE_BUILD
+
+        TARGET_PRODUCT=$1 \
+        TARGET_RELEASE=$2 \
+        TARGET_BUILD_VARIANT= \
+        TARGET_BUILD_TYPE= \
+        TARGET_BUILD_APPS= \
+        _get_build_var_cached TARGET_DEVICE > /dev/null
+    # hide successful answers, but allow the errors to show
+}
+
 # Add directories to PATH that are dependent on the lunch target.
 # For directories that are not lunch-specific, add them in set_global_paths
 function set_lunch_paths()
@@ -452,6 +476,15 @@ function _lunch_meat()
         then
             echo "Did you mean -${product/*_/}? (dash instead of underscore)"
         fi
+        echo
+        echo "** Don't have a product spec for: '$product'"
+        echo "** Do you have the right repo manifest?"
+        product=
+    fi
+
+    if [ -z "$product" -o -z "$variant" ]
+    then
+        echo
         return 1
     fi
     export TARGET_PRODUCT=$(_get_build_var_cached TARGET_PRODUCT)
@@ -578,12 +611,20 @@ function lunch()
         fi
     fi
 
-    if (echo -n $product | grep -q -e "^ice_") ; then
-        ICE_BUILD=$(echo -n $product | sed -e 's/^ice_//g')
+    if ! check_product $product $release
+    then
+        # if we can't find a product, try to grab it off our GitHub
+        T=$(gettop)
+        cd $T > /dev/null
+        vendor/ice/build/tools/roomservice.py $product
+        cd - > /dev/null
+        check_product $product $release
     else
-        ICE_BUILD=
+        T=$(gettop)
+        cd $T > /dev/null
+        vendor/ice/build/tools/roomservice.py $product true
+        cd - > /dev/null
     fi
-    export ICE_BUILD
 
     # Validate the selection and set all the environment stuff
     _lunch_meat $product $release $variant
