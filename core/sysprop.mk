@@ -30,6 +30,8 @@ POST_PROCESS_PROPS := $(HOST_OUT_EXECUTABLES)/post_process_props$(HOST_EXECUTABL
 # $(1): Partition name
 # $(2): Output file name
 define generate-common-build-props
+    bash -c '\
+    $(or $(PRODUCT_BUILD_PROP_OVERRIDES),:);\
     echo "####################################" >> $(2);\
     echo "# from generate-common-build-props" >> $(2);\
     echo "# These properties identify this partition image." >> $(2);\
@@ -42,10 +44,10 @@ define generate-common-build-props
         echo "ro.product.$(1).name=$(PRODUCT_SYSTEM_NAME)" >> $(2);\
       ,\
         echo "ro.product.$(1).brand=$(PRODUCT_BRAND)" >> $(2);\
-        echo "ro.product.$(1).device=$(TARGET_DEVICE)" >> $(2);\
+        echo "ro.product.$(1).device=$${TARGET_DEVICE:-$(TARGET_DEVICE)}" >> $(2);\
         echo "ro.product.$(1).manufacturer=$(PRODUCT_MANUFACTURER)" >> $(2);\
-        echo "ro.product.$(1).model=$(PRODUCT_MODEL)" >> $(2);\
-        echo "ro.product.$(1).name=$(TARGET_PRODUCT)" >> $(2);\
+        echo "ro.product.$(1).model=$${PRODUCT_MODEL:-$(PRODUCT_MODEL)}" >> $(2);\
+        echo "ro.product.$(1).name=$${TARGET_PRODUCT:-$(TARGET_PRODUCT)}" >> $(2);\
     )\
     $(if $(filter system vendor odm,$(1)),\
         echo "ro.$(1).product.cpu.abilist=$(TARGET_CPU_ABI_LIST) " >> $(2);\
@@ -62,6 +64,7 @@ define generate-common-build-props
     echo "ro.$(1).build.version.release=$(PLATFORM_VERSION_LAST_STABLE)" >> $(2);\
     echo "ro.$(1).build.version.release_or_codename=$(PLATFORM_VERSION)" >> $(2);\
     echo "ro.$(1).build.version.sdk=$(PLATFORM_SDK_VERSION)" >> $(2);\
+    ';\
 
 endef
 
@@ -267,6 +270,7 @@ $(gen_from_buildinfo_sh): $(INTERNAL_BUILD_ID_MAKEFILE) $(API_FINGERPRINT) | $(B
 	        TARGET_CPU_ABI_LIST_64_BIT="$(TARGET_CPU_ABI_LIST_64_BIT)" \
 	        TARGET_CPU_ABI="$(TARGET_CPU_ABI)" \
 	        TARGET_CPU_ABI2="$(TARGET_CPU_ABI2)" \
+	        $(PRODUCT_BUILD_PROP_OVERRIDES) \
 	        bash $(BUILDINFO_SH) > $@
 
 ifdef TARGET_SYSTEM_PROP
