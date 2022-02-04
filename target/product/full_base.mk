@@ -42,6 +42,16 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     netutils-wrapper-1.0
 
+ifeq ($(ICE_BUILD),)
+# Additional settings used in all AOSP builds
+PRODUCT_VENDOR_PROPERTIES := \
+    ro.config.ringtone?=Ring_Synth_04.ogg \
+    ro.config.notification_sound?=pixiedust.ogg
+
+# Get some sounds
+$(call inherit-product-if-exists, frameworks/base/data/sounds/AllAudio.mk)
+endif
+
 # Put en_US first in the list, so make it default.
 PRODUCT_LOCALES := en_US
 
